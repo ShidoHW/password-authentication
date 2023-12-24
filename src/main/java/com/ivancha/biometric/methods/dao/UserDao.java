@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 
 @RequiredArgsConstructor
@@ -18,6 +19,30 @@ public class UserDao {
     private final Connection dbConnection;
 
     private final PasswordDao passwordDao;
+
+
+    public Optional<UserReadDto> findByNickname(String username) throws SQLException {
+
+        try (PreparedStatement statement = dbConnection.prepareStatement("""
+                SELECT id, nickname
+                FROM users u
+                WHERE nickname = ?;
+                    """)) {
+            statement.setString(1, username);
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+
+                if (resultSet.next())
+                {
+                    long id = resultSet.getLong("id");
+                    PasswordReadDto passwordReadDto = passwordDao.findForUser(id);
+                    return Optional.of(new UserReadDto(id, username, passwordReadDto));
+                }
+                else
+                    return Optional.empty();
+            }
+        }
+    }
 
 
     public Long create(String username) throws SQLException {
