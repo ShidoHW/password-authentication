@@ -16,8 +16,8 @@ public class ServiceUtil {
         PasswordDao passwordDao = new PasswordDao(manager.getConn());
         UserDao userDao = new UserDao(manager.getConn(), passwordDao);
 
-        UserService userService = new UserService(userDao);
         PasswordService passwordService = new PasswordService(passwordDao);
+        UserService userService = new UserService(userDao, passwordService);
 
         return new ServiceResources(userService, passwordService);
     }

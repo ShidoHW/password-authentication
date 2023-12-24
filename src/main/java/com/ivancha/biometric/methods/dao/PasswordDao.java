@@ -10,7 +10,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -40,8 +42,8 @@ public class PasswordDao {
         return new PasswordReadDto(
                 passwordForUser.id(),
                 passwordForUser.value(),
-                findTimeBetweenPressesFor(passwordForUser.id()),
-                findKeyPressTimeFor(passwordForUser.id())
+                findTbpStandardFor(passwordForUser.id()),
+                findKptStandardFor(passwordForUser.id())
         );
 
     }
@@ -59,6 +61,50 @@ public class PasswordDao {
                 statement.setLong(4, passwordId);
 
                 statement.execute();
+            }
+        }
+    }
+
+    private Map<Integer, StandardDto> findTbpStandardFor(long passwordId) throws SQLException {
+
+        try (PreparedStatement statement = dbConnection.prepareStatement("""
+            SELECT gap_number, min, max
+            FROM tbp_standard
+            WHERE password_id = ?
+            """)) {
+
+            statement.setLong(1, passwordId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+
+                Map<Integer, StandardDto> tbpStandard = new HashMap<>();
+                while (resultSet.next())
+                {
+                    tbpStandard.put(resultSet.getInt("gap_number"),
+                            new StandardDto(resultSet.getInt("min"), resultSet.getInt("max")));
+                }
+                return tbpStandard;
+            }
+        }
+    }
+
+    private Map<Integer, StandardDto> findKptStandardFor(long passwordId) throws SQLException {
+
+        try (PreparedStatement statement = dbConnection.prepareStatement("""
+            SELECT gap_number, min, max
+            FROM kpt_standard
+            WHERE password_id = ?
+            """)) {
+
+            statement.setLong(1, passwordId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+
+                Map<Integer, StandardDto> tbpStandard = new HashMap<>();
+                while (resultSet.next())
+                {
+                    tbpStandard.put(resultSet.getInt("gap_number"),
+                            new StandardDto(resultSet.getInt("min"), resultSet.getInt("max")));
+                }
+                return tbpStandard;
             }
         }
     }
@@ -157,10 +203,10 @@ public class PasswordDao {
     }
 
 
-    private Map<Integer, Integer> findTimeBetweenPressesFor(long passwordId) throws SQLException {
+    public List<Map<Integer, Integer>> findAllTimeBetweenPressesFor(long passwordId) throws SQLException {
 
         try (PreparedStatement statement = dbConnection.prepareStatement("""
-                SELECT time tbp_time
+                SELECT gap_number, time tbp_time
                 FROM time_between_presses tbp
                 WHERE password_id = ?
                 ORDER BY gap_number;
@@ -169,22 +215,31 @@ public class PasswordDao {
             statement.setLong(1, passwordId);
             try(ResultSet resultSet = statement.executeQuery()) {
 
+                boolean firstZeroNum = true;
+                List<Map<Integer, Integer>> allTimeBetweenPresses = new ArrayList<>();
                 Map<Integer, Integer> timeBetweenPresses = new HashMap<>();
-                int gapNumber = 0;
-                while (resultSet.next()) {
-                    timeBetweenPresses.put(gapNumber++, resultSet.getInt("tbp_time"));
+                while (resultSet.next())
+                {
+                    int gupNumber = resultSet.getInt("gap_number");
+                    if (!firstZeroNum && gupNumber == 0) {
+                        allTimeBetweenPresses.add(timeBetweenPresses);
+                        timeBetweenPresses = new HashMap<>();
+                    }
+                    timeBetweenPresses.put(gupNumber, resultSet.getInt("tbp_time"));
+                    firstZeroNum = false;
                 }
+                allTimeBetweenPresses.add(timeBetweenPresses);
 
-                return timeBetweenPresses;
+                return allTimeBetweenPresses;
             }
         }
     }
 
 
-    private Map<Integer, Integer> findKeyPressTimeFor(long passwordId) throws SQLException {
+    public List<Map<Integer, Integer>> findAllKeyPressTimeFor(long passwordId) throws SQLException {
 
         try (PreparedStatement statement = dbConnection.prepareStatement("""
-                SELECT time kpt_time
+                SELECT gap_number, time kpt_time
                 FROM key_press_time kpt
                 WHERE password_id = ?
                 ORDER BY gap_number;
@@ -193,18 +248,25 @@ public class PasswordDao {
             statement.setLong(1, passwordId);
             try(ResultSet resultSet = statement.executeQuery()) {
 
-                Map<Integer, Integer> timeBetweenPresses = new HashMap<>();
-                int gapNumber = 0;
-
-                while (resultSet.next()) {
-                    timeBetweenPresses.put(gapNumber++, resultSet.getInt("kpt_time"));
+                boolean firstZeroNum = true;
+                List<Map<Integer, Integer>> allKeyPressTime = new ArrayList<>();
+                Map<Integer, Integer> keyPressTime = new HashMap<>();
+                while (resultSet.next())
+                {
+                    int gupNumber = resultSet.getInt("gap_number");
+                    if (!firstZeroNum && gupNumber == 0) {
+                        allKeyPressTime.add(keyPressTime);
+                        keyPressTime = new HashMap<>();
+                    }
+                    keyPressTime.put(gupNumber, resultSet.getInt("kpt_time"));
+                    firstZeroNum = false;
                 }
+                allKeyPressTime.add(keyPressTime);
 
-                return timeBetweenPresses;
+                return allKeyPressTime;
             }
         }
     }
-
 
     private record idValueDto(long id, String value) { }
 }

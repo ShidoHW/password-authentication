@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
+import java.util.stream.Collectors;
 
 
 @RequiredArgsConstructor
@@ -25,12 +26,16 @@ public class ShowAllUserBtnListener extends AbstractAction {
 
             UserReadDto userDto = userInfoList.get(i);
             PasswordReadDto passwordDto = userDto.passwordReadDto();
-            sb.append(String.format("%d: Имя пользователя: %-15s Пароль: %-10s Время нажатия клавиш: %-50S Время между нажатиями клавиш: %-50s",
+            sb.append(String.format("%d: Имя пользователя: %-15s Пароль: %-10s Эталоны времени нажатия клавиш: %-50S Эталоны времени между нажатиями клавиш: %-50s",
                     i,
                     userDto.nickname(),
                     passwordDto.value(),
-                    passwordDto.keyPressTime(),
-                    passwordDto.timeBetweenPresses())
+                    passwordDto.standardKpt().entrySet().stream()
+                            .map(entry -> entry.getKey().toString() + " - " + entry.getValue().toString())
+                            .collect(Collectors.joining(" ")),
+                    passwordDto.standardTbp().entrySet().stream()
+                            .map(entry -> entry.getKey().toString() + " - " + entry.getValue().toString())
+                            .collect(Collectors.joining(" ")))
             );
             sb.append('\n');
 
