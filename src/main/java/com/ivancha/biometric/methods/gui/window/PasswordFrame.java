@@ -22,7 +22,10 @@ public class PasswordFrame extends JFrame {
         parentPanel.add(regPanel, "wrap");
 
         AllUserPanel allUserPanel = new AllUserPanel(sr.userService());
-        parentPanel.add(allUserPanel);
+        parentPanel.add(allUserPanel, "wrap");
+
+        AuthenticationPanel authenticationPanel = new AuthenticationPanel(sr.userService());
+        parentPanel.add(authenticationPanel);
 
         this.add(parentPanel);
 
