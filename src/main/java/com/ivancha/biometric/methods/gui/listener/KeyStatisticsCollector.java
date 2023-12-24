@@ -11,9 +11,9 @@ import java.util.List;
 public class KeyStatisticsCollector implements KeyListener {
 
     @Getter
-    private final List<Long> timeBetweenPresses = new ArrayList<>();
+    private final List<Integer> timeBetweenPresses = new ArrayList<>();
     @Getter
-    private final List<Long> pressTimeList = new ArrayList<>();
+    private final List<Integer> pressTimeList = new ArrayList<>();
 
     private boolean isKeyPressed = false;
     private long startPressFreeTime = System.currentTimeMillis();
@@ -26,7 +26,7 @@ public class KeyStatisticsCollector implements KeyListener {
             long nowTime = System.currentTimeMillis();
 
             startPressTime = nowTime;
-            timeBetweenPresses.add(nowTime - startPressFreeTime);
+            timeBetweenPresses.add((int) (nowTime - startPressFreeTime));
             isKeyPressed = true;
         }
     }
@@ -37,7 +37,7 @@ public class KeyStatisticsCollector implements KeyListener {
 
             long nowTime = System.currentTimeMillis();
 
-            pressTimeList.add(nowTime - startPressTime);
+            pressTimeList.add((int) (nowTime - startPressTime));
             startPressFreeTime = nowTime;
             isKeyPressed = false;
         }

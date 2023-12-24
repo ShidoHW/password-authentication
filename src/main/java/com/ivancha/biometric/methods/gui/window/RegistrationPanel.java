@@ -1,6 +1,8 @@
 package com.ivancha.biometric.methods.gui.window;
 
 import com.ivancha.biometric.methods.dto.PasswordCreateDto;
+import com.ivancha.biometric.methods.dto.StandardDto;
+import com.ivancha.biometric.methods.dto.StatisticCreateDto;
 import com.ivancha.biometric.methods.dto.UserCreateDto;
 import com.ivancha.biometric.methods.gui.listener.KeyStatisticsCollector;
 import com.ivancha.biometric.methods.service.PasswordService;
@@ -12,6 +14,8 @@ import java.awt.event.ActionEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static com.ivancha.biometric.methods.Utils.getMinMaxElemByElem;
 
 
 public class RegistrationPanel extends JPanel {
@@ -48,7 +52,7 @@ public class RegistrationPanel extends JPanel {
 
         JTextField passErrField = new JTextField(10); // принимает до 10 символов
         KeyStatisticsCollector passErrKeyStatistics = new KeyStatisticsCollector();
-        passErrField.addKeyListener(confirmKeyStatistics);
+        passErrField.addKeyListener(passErrKeyStatistics);
         this.add(passErrField, "wrap");
 
         var sendButtonListener = new AbstractAction() {
@@ -56,17 +60,62 @@ public class RegistrationPanel extends JPanel {
             @Override
             public void actionPerformed(ActionEvent e) {
 
-                var userId = userService.create(new UserCreateDto(usernameTextField.getText()));
+                String username = usernameTextField.getText();
 
-                List<Long> timeBetweenPresses = passwordKeyStatistics.getTimeBetweenPresses();
-                timeBetweenPresses.remove(0);
-                passwordService.create(new PasswordCreateDto(
-                        passwordTextField.getText(),
+                if (userService.findByNickname(username).isPresent()) {
+                    JOptionPane.showMessageDialog(RegistrationPanel.this,
+                            "Так не пойдёт. Это имя пользователя занято. Возьмите другое!");
+                    clearFields();
+                    return;
+                }
+
+                String pass = passwordTextField.getText();
+                String confirmPass = confirmTextField.getText();
+                String errPass = passErrField.getText();
+
+                if (!pass.equals(confirmPass) || !pass.equals(errPass)) {
+                    JOptionPane.showMessageDialog(RegistrationPanel.this,
+                            "Так не пойдёт. Пароли не совпадают. Заново!");
+                    clearFields();
+                    return;
+                }
+                if (pass.length() < 1)
+                {
+                    JOptionPane.showMessageDialog(RegistrationPanel.this,
+                            "Так не пойдёт. Хочу пароль хотя бы из двух символов. Заново!");
+                    clearFields();
+                    return;
+                }
+
+                var userId = userService.create(new UserCreateDto(username));
+
+                List<Integer> passTimeBetweenPresses = passwordKeyStatistics.getTimeBetweenPresses();
+                passTimeBetweenPresses.remove(0);
+                List<Integer> confirmTimeBetweenPresses = confirmKeyStatistics.getTimeBetweenPresses();
+                confirmTimeBetweenPresses.remove(0);
+
+                Map<Integer, StandardDto> tbpStandard = getMinMaxElemByElem(List.of(passTimeBetweenPresses, confirmTimeBetweenPresses));
+                Map<Integer, StandardDto> kpsStandard = getMinMaxElemByElem(List.of(passwordKeyStatistics.getPressTimeList(), confirmKeyStatistics.getPressTimeList()));
+
+                Long passwordId = passwordService.save(new PasswordCreateDto(
+                        pass,
                         userId,
-                        listToMapWithOrder(timeBetweenPresses),
-                        listToMapWithOrder(passwordKeyStatistics.getPressTimeList()))
+                        tbpStandard,
+                        kpsStandard)
                 );
 
+                List<Integer> errTimeBetweenPresses = passErrKeyStatistics.getTimeBetweenPresses();
+                errTimeBetweenPresses.remove(0);
+                passwordService.save(new StatisticCreateDto(
+                        passwordId,
+                        listToMapWithOrder(errTimeBetweenPresses),
+                        listToMapWithOrder(passErrKeyStatistics.getPressTimeList()))
+                );
+
+                clearFields();
+            }
+
+            private void clearFields() {
                 usernameTextField.setText("");
                 passwordTextField.setText("");
                 confirmTextField.setText("");
@@ -76,11 +125,11 @@ public class RegistrationPanel extends JPanel {
                 passErrKeyStatistics.clear();
             }
 
-            public Map<Integer, Integer> listToMapWithOrder(List<Long> list) {
+            private Map<Integer, Integer> listToMapWithOrder(List<Integer> list) {
                 Map<Integer, Integer> map = new HashMap<>();
 
                 for (int i = 0; i < list.size(); i++)
-                    map.put(i, list.get(i).intValue());
+                    map.put(i, list.get(i));
 
                 return map;
             }
