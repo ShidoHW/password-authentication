@@ -24,3 +24,19 @@ CREATE TABLE key_press_time (
     time            INT                NOT NULL,
     password_id     BIGINT             NOT NULL         REFERENCES password (id) ON DELETE CASCADE
 );
+
+CREATE TABLE tbp_standard (
+    id              BIGSERIAL          PRIMARY KEY,
+    gap_number      INT                NOT NULL,
+    min             BIGINT,
+    max             BIGINT,
+    password_id     BIGINT             NOT NULL         REFERENCES password (id) ON DELETE CASCADE
+);
+
+CREATE TABLE kpt_standard (
+    id              BIGSERIAL          PRIMARY KEY,
+    gap_number      INT                NOT NULL,
+    min             BIGINT,
+    max             BIGINT,
+    password_id     BIGINT             NOT NULL         REFERENCES password (id) ON DELETE CASCADE
+);

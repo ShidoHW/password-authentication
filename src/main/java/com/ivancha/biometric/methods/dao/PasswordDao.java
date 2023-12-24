@@ -2,6 +2,8 @@ package com.ivancha.biometric.methods.dao;
 
 import com.ivancha.biometric.methods.dto.PasswordCreateDto;
 import com.ivancha.biometric.methods.dto.PasswordReadDto;
+import com.ivancha.biometric.methods.dto.StandardDto;
+import com.ivancha.biometric.methods.dto.StatisticCreateDto;
 import lombok.RequiredArgsConstructor;
 
 import java.sql.Connection;
@@ -18,15 +20,18 @@ public class PasswordDao {
     private final Connection dbConnection;
 
 
-    public Long create(PasswordCreateDto passwordCreateDto) throws SQLException {
+    public long create(PasswordCreateDto passwordCreateDto) throws SQLException {
 
         long passwordId = savePassword(new idValueDto(passwordCreateDto.userId(), passwordCreateDto.value()));
-        saveTimeBetweenPressesFor(passwordId, passwordCreateDto.timeBetweenPresses());
-        saveKeyPressTimeFor(passwordId, passwordCreateDto.keyPressTime());
-
+        savePasswordTbpStandard(passwordCreateDto.tbpStandard(), passwordId);
+        savePasswordKptStandard(passwordCreateDto.kpsStandard(), passwordId);
         return passwordId;
     }
 
+    public void create(StatisticCreateDto statisticCreateDto) throws SQLException {
+        saveTimeBetweenPressesFor(statisticCreateDto.passwordId(), statisticCreateDto.timeBetweenPresses());
+        saveKeyPressTimeFor(statisticCreateDto.passwordId(), statisticCreateDto.keyPressTime());
+    }
 
     public PasswordReadDto findForUser(long userId) throws SQLException {
 
@@ -39,6 +44,40 @@ public class PasswordDao {
                 findKeyPressTimeFor(passwordForUser.id())
         );
 
+    }
+
+    private void savePasswordKptStandard(Map<Integer, StandardDto> tbp, long passwordId) throws SQLException {
+
+        for (Map.Entry<Integer, StandardDto> elemStandard : tbp.entrySet()) {
+            try (PreparedStatement statement = dbConnection.prepareStatement("""
+                    INSERT INTO kpt_standard(gap_number, min, max, password_id)
+                    VALUES (?, ?, ?, ?)
+                    """)) {
+                statement.setInt(1, elemStandard.getKey());
+                statement.setLong(2, elemStandard.getValue().min());
+                statement.setLong(3, elemStandard.getValue().max());
+                statement.setLong(4, passwordId);
+
+                statement.execute();
+            }
+        }
+    }
+
+    private void savePasswordTbpStandard(Map<Integer, StandardDto> tbp, long passwordId) throws SQLException {
+
+        for (Map.Entry<Integer, StandardDto> elemStandard : tbp.entrySet()) {
+            try (PreparedStatement statement = dbConnection.prepareStatement("""
+                    INSERT INTO tbp_standard(gap_number, min, max, password_id)
+                    VALUES (?, ?, ?, ?)
+                    """)) {
+                statement.setInt(1, elemStandard.getKey());
+                statement.setLong(2, elemStandard.getValue().min());
+                statement.setLong(3, elemStandard.getValue().max());
+                statement.setLong(4, passwordId);
+
+                statement.execute();
+            }
+        }
     }
 
 

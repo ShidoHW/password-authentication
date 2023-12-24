@@ -6,6 +6,6 @@ import java.util.Map;
 public record PasswordCreateDto(
         String value,
         Long userId,
-        Map<Integer, Integer> timeBetweenPresses,
-        Map<Integer, Integer> keyPressTime
+        Map<Integer, StandardDto> tbpStandard,
+        Map<Integer, StandardDto> kpsStandard
 ) {}
